@@ -1,8 +1,7 @@
-#Imports
 import pygame, sys
 from pygame.locals import *
 import random, time
- 
+
 #Initialzing 
 pygame.init()
  
@@ -22,8 +21,7 @@ SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 600
 SPEED = 5
 SCORE = 0
-coo=0
- 
+COIN = 0
 #Setting up Fonts
 font = pygame.font.SysFont("Verdana", 60)
 font_small = pygame.font.SysFont("Verdana", 20)
@@ -50,22 +48,30 @@ class Enemy(pygame.sprite.Sprite):
             SCORE += 1
             self.rect.top = 0
             self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
-
+#coin
+index_of_money = 0
 class Coin(pygame.sprite.Sprite):
       def __init__(self):
         super().__init__() 
-        self.image = pygame.image.load("coin.png")
+        global money
+        money = ['money.png','coin.png']
+        self.image = pygame.image.load(money[index_of_money])
+        self.image = pygame.transform.scale(self.image, (20, 20))  # Масштабирование изображения
         self.rect = self.image.get_rect()
         self.rect.center = (random.randint(15, SCREEN_WIDTH-15), 0)  
  
       def move(self):
         global SCORE
-        self.rect.move_ip(0,SPEED)
+        global index_of_money
+        self.rect.move_ip(0, SPEED)
         if (self.rect.top > 600):
             self.rect.top = 0
             self.rect.center = (random.randint(15, SCREEN_WIDTH - 15), 0)
- 
- 
+            index_of_money = random.randint(0, 1)
+            self.image = pygame.image.load(money[index_of_money])
+            self.image = pygame.transform.scale(self.image, (200, 20))  # Масштабирование изображения
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__() 
@@ -75,11 +81,11 @@ class Player(pygame.sprite.Sprite):
         
     def move(self):
         pressed_keys = pygame.key.get_pressed()
-       #if pressed_keys[K_UP]:
-            #self.rect.move_ip(0, -5)
-       #if pressed_keys[K_DOWN]:
-            #self.rect.move_ip(0,5)
-         
+        
+        if pressed_keys[K_UP]:
+            self.rect.move_ip(0, -5)
+        if pressed_keys[K_DOWN]:
+            self.rect.move_ip(0,5)
         if self.rect.left > 0:
               if pressed_keys[K_LEFT]:
                   self.rect.move_ip(-5, 0)
@@ -91,43 +97,50 @@ class Player(pygame.sprite.Sprite):
 P1 = Player()
 E1 = Enemy()
 C1 = Coin()
- 
 #Creating Sprites Groups
-coins=pygame.sprite.Group()
-coins.add(C1)
 enemies = pygame.sprite.Group()
 enemies.add(E1)
+coin = pygame.sprite.Group()
+coin.add(C1)
 all_sprites = pygame.sprite.Group()
 all_sprites.add(P1)
 all_sprites.add(E1)
-all_sprites.add(C1)
- 
+all_sprites.add(C1) 
 #Adding a new User event 
 INC_SPEED = pygame.USEREVENT + 1
 pygame.time.set_timer(INC_SPEED, 1000)
- 
 #Game Loop
 while True:
-       
+   
     #Cycles through all events occurring  
     for event in pygame.event.get():
-        if event.type == INC_SPEED and SPEED<8:
-              SPEED += 0.5     
+        if event.type == INC_SPEED:
+              SPEED += 0.02
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
- 
+    
     DISPLAYSURF.blit(background, (0,0))
     scores = font_small.render(str(SCORE), True, BLACK)
     DISPLAYSURF.blit(scores, (10,10))
-    coin1 = font_small.render("coins: "+str(coo), True, BLACK)
-    DISPLAYSURF.blit(coin1, (SCREEN_WIDTH-85,10))
- 
+    coins = font_small.render(str(COIN), True, BLACK)
+    DISPLAYSURF.blit(coins, (SCREEN_WIDTH-25,10))
     #Moves and Re-draws all Sprites
     for entity in all_sprites:
         DISPLAYSURF.blit(entity.image, entity.rect)
         entity.move()
- 
+    if pygame.sprite.spritecollideany(P1, coin):
+        C1.rect.top = 0
+        C1.rect.center =( random.randint(15, SCREEN_WIDTH - 15), 0)
+        if index_of_money == 1:
+            COIN+=2
+        else:
+            COIN+=1
+        if COIN == 10:
+            SPEED +=2
+        index_of_money = random.randint(0,1)
+        C1.image = pygame.image.load(money[index_of_money])
+        
     #To be run if collision occurs between Player and Enemy
     if pygame.sprite.spritecollideany(P1, enemies):
           time.sleep(0.5)
@@ -140,12 +153,7 @@ while True:
                 entity.kill() 
           time.sleep(2)
           pygame.quit()
-          sys.exit()   
-
-    if pygame.sprite.spritecollideany(P1,coins):
-        coo+=1
-        C1.rect.top = 0
-        C1.rect.center = (random.randint(15, SCREEN_WIDTH - 15), 0)
+          sys.exit()        
          
     pygame.display.update()
     FramePerSec.tick(FPS)
